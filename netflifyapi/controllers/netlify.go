@@ -122,6 +122,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request) {
 
 	var movie models.Netlify
 	_ = json.NewDecoder(r.Body).Decode(&movie)
+	movie.Id = primitive.NewObjectID()
 	inserOneMovie(movie)
 	json.NewEncoder(w).Encode(movie)
 }
