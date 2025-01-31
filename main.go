@@ -35,6 +35,22 @@ func (c *Course) isEmpty() bool {
 }
 
 func main() {
+	fmt.Println("Starting the server...")
+
+	r := mux.NewRouter()
+
+	// dummy data
+	courses = append(courses, Course{CourseID: "1", CourseName: "Go Programming", CoursePrice: 100.0, Author: &Author{FullName: "John Doe", WebSite: "http://johndoe.com"}})
+
+	// routes
+	r.HandleFunc("/", serveHome).Methods("GET")
+	r.HandleFunc("/courses", getAllCourses).Methods("GET")
+	r.HandleFunc("/courses", createCourse).Methods("POST")
+	r.HandleFunc("/courses/{courseid}", getCourse).Methods("GET")
+	r.HandleFunc("/courses/{courseid}", updateCourse).Methods("PUT")
+	r.HandleFunc("/courses/{courseid}", deleteCourse).Methods("DELETE")
+
+	http.ListenAndServe(":8080", r)
 
 }
 
@@ -71,6 +87,7 @@ func getCourse(w http.ResponseWriter, r *http.Request) {
 func createCourse(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Create a course")
 	w.Header().Set("Content-Type", "application/json")
+	fmt.Println(r.Body)
 	if r.Body == nil {
 		json.NewEncoder(w).Encode("Please provide course details")
 		return
@@ -79,7 +96,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 	var course Course
 	_ = json.NewDecoder(r.Body).Decode(&course)
 	if course.isEmpty() {
-		json.NewEncoder(w).Encode("Please provide course details")
+		json.NewEncoder(w).Encode("Please provide course name")
 		return
 	}
 
@@ -99,10 +116,22 @@ func updateCourse(w http.ResponseWriter, r *http.Request) {
 	// get the course id from the url
 	courseid := mux.Vars(r)["courseid"]
 
+	if r.Body == nil {
+		json.NewEncoder(w).Encode("Please provide course details")
+		return
+	}
+
+	var course Course
+	_ = json.NewDecoder(r.Body).Decode(&course)
+	if course.isEmpty() {
+		json.NewEncoder(w).Encode("Please provide course details")
+		return
+	}
+
 	for index, course := range courses {
 		if course.CourseID == courseid {
 			courses = append(courses[:index], courses[index+1:]...)
-			var course Course
+
 			_ = json.NewDecoder(r.Body).Decode(&course)
 			course.CourseID = courseid
 			courses = append(courses, course)
@@ -110,5 +139,23 @@ func updateCourse(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+	json.NewEncoder(w).Encode("Course with id: " + courseid + " not found")
+}
+
+func deleteCourse(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Delete a course")
+	w.Header().Set("Content-Type", "application/json")
+
+	// get the course id from the url
+	courseid := mux.Vars(r)["courseid"]
+	for index, course := range courses {
+		if course.CourseID == courseid {
+			courses = append(courses[:index], courses[index+1:]...)
+
+			json.NewEncoder(w).Encode("Course with id: " + courseid + " deleted")
+			return
+		}
+	}
+
 	json.NewEncoder(w).Encode("Course with id: " + courseid + " not found")
 }
